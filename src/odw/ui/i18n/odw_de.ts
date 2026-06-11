@@ -2,52 +2,244 @@
 <!DOCTYPE TS>
 <TS version="2.1" language="de_DE">
 <context>
-    <name>SeriesTableModel</name>
+    <name>MainWindow</name>
     <message>
-        <location filename="../study_browser.py" line="94"/>
-        <source>Series #</source>
+        <location filename="../main_window.py" line="30"/>
+        <source>Open DICOM Workstation</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../study_browser.py" line="95"/>
-        <source>Modality</source>
+        <location filename="../main_window.py" line="62"/>
+        <source>Main</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../study_browser.py" line="96"/>
+        <location filename="../main_window.py" line="64"/>
+        <source>Query PACS…</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../main_window.py" line="66"/>
+        <source>Settings…</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../main_window.py" line="68"/>
+        <source>Back to studies</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../main_window.py" line="130"/>
+        <source>Restart to apply network settings</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>QueryDialog</name>
+    <message>
+        <location filename="../query_dialog.py" line="108"/>
+        <source>Query PACS</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../query_dialog.py" line="123"/>
+        <source>YYYYMMDD or range, optional</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../query_dialog.py" line="125"/>
+        <source>Search</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../query_dialog.py" line="136"/>
+        <source>Retrieve (C-GET)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../query_dialog.py" line="138"/>
+        <source>Retrieve (C-MOVE)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../query_dialog.py" line="148"/>
+        <source>PACS node</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../query_dialog.py" line="149"/>
+        <source>Patient name</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../query_dialog.py" line="150"/>
+        <source>Study date</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../query_dialog.py" line="174"/>
+        <source>No PACS node configured</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../query_dialog.py" line="180"/>
+        <source>Select a study first</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../query_dialog.py" line="216"/>
+        <source>Found {n} studies</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../query_dialog.py" line="265"/>
+        <source>Retrieved {n} instances</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>QueryResultsModel</name>
+    <message>
+        <location filename="../query_dialog.py" line="90"/>
+        <source>Patient Name</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../query_dialog.py" line="91"/>
+        <source>Patient ID</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../query_dialog.py" line="92"/>
+        <source>Study Date</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../query_dialog.py" line="93"/>
         <source>Description</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../study_browser.py" line="97"/>
+        <location filename="../query_dialog.py" line="94"/>
+        <source>Modalities</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../query_dialog.py" line="95"/>
         <source>Images</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>SeriesTableModel</name>
+    <message>
+        <location filename="../study_browser.py" line="133"/>
+        <source>Series #</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../study_browser.py" line="134"/>
+        <source>Modality</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../study_browser.py" line="135"/>
+        <source>Description</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../study_browser.py" line="136"/>
+        <source>Images</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>SettingsDialog</name>
+    <message>
+        <location filename="../settings_dialog.py" line="32"/>
+        <source>Settings</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../settings_dialog.py" line="44"/>
+        <source>Browse…</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../settings_dialog.py" line="51"/>
+        <source>Name</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../settings_dialog.py" line="51"/>
+        <source>AE Title</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../settings_dialog.py" line="51"/>
+        <source>Host</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../settings_dialog.py" line="51"/>
+        <source>Port</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../settings_dialog.py" line="56"/>
+        <source>Add node</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../settings_dialog.py" line="59"/>
+        <source>Remove node</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../settings_dialog.py" line="75"/>
+        <source>Local AE title</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../settings_dialog.py" line="76"/>
+        <source>Listen port</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../settings_dialog.py" line="77"/>
+        <source>Storage directory</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../settings_dialog.py" line="108"/>
+        <source>Choose storage directory</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
     <name>StudyTableModel</name>
     <message>
-        <location filename="../study_browser.py" line="52"/>
+        <location filename="../study_browser.py" line="76"/>
         <source>Patient Name</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../study_browser.py" line="53"/>
+        <location filename="../study_browser.py" line="77"/>
         <source>Patient ID</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../study_browser.py" line="54"/>
+        <location filename="../study_browser.py" line="78"/>
         <source>Study Date</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../study_browser.py" line="55"/>
+        <location filename="../study_browser.py" line="79"/>
         <source>Description</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../study_browser.py" line="56"/>
+        <location filename="../study_browser.py" line="80"/>
         <source>Modalities</source>
         <translation type="unfinished"></translation>
     </message>
@@ -55,12 +247,12 @@
 <context>
     <name>ViewerWidget</name>
     <message>
-        <location filename="../viewer.py" line="177"/>
+        <location filename="../viewer.py" line="183"/>
         <source>No series loaded</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../viewer.py" line="186"/>
+        <location filename="../viewer.py" line="192"/>
         <source>Unable to render image</source>
         <translation type="unfinished"></translation>
     </message>
