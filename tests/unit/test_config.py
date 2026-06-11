@@ -3,6 +3,7 @@
 from pathlib import Path
 
 import pytest
+from pydicom.uid import ImplicitVRLittleEndian, RLELossless
 
 from odw.core.config import (
     AppConfig,
@@ -13,6 +14,7 @@ from odw.core.config import (
     save_config,
 )
 from odw.core.models import PacsNode
+from odw.core.transfer import DEFAULT_TRANSFER_SYNTAXES
 
 
 def test_load_missing_file_returns_defaults(tmp_path: Path) -> None:
@@ -29,9 +31,16 @@ def test_roundtrip(tmp_path: Path) -> None:
         listen_port=10400,
         storage_dir=tmp_path / "store",
         nodes=[
-            PacsNode(name="Main PACS", ae_title="MAIN", host="pacs.example.org", port=104),
+            PacsNode(
+                name="Main PACS",
+                ae_title="MAIN",
+                host="pacs.example.org",
+                port=104,
+                retrieve_method="C-MOVE",
+            ),
             PacsNode(name="Backup", ae_title="BACKUP", host="10.0.0.2", port=11112),
         ],
+        transfer_syntaxes=[str(ImplicitVRLittleEndian), str(RLELossless)],
     )
     path = tmp_path / "config.toml"
 
@@ -42,6 +51,58 @@ def test_roundtrip(tmp_path: Path) -> None:
     assert loaded.listen_port == original.listen_port
     assert loaded.storage_dir == original.storage_dir
     assert loaded.nodes == original.nodes
+    assert loaded.nodes[0].retrieve_method == "C-MOVE"
+    assert loaded.nodes[1].retrieve_method == "C-GET"
+    assert loaded.transfer_syntaxes == [str(ImplicitVRLittleEndian), str(RLELossless)]
+
+
+def test_load_old_config_without_new_keys_yields_defaults(tmp_path: Path) -> None:
+    path = tmp_path / "config.toml"
+    path.write_text(
+        'local_ae_title = "OLD"\n'
+        "\n"
+        "[[nodes]]\n"
+        'name = "Main"\n'
+        'ae_title = "MAIN"\n'
+        'host = "pacs.example.org"\n'
+        "port = 104\n"
+    )
+
+    config = load_config(path)
+
+    assert config.nodes[0].retrieve_method == "C-GET"
+    assert config.transfer_syntaxes == DEFAULT_TRANSFER_SYNTAXES
+
+
+def test_load_rejects_invalid_retrieve_method(tmp_path: Path) -> None:
+    path = tmp_path / "config.toml"
+    path.write_text(
+        "[[nodes]]\n"
+        'name = "Main"\n'
+        'ae_title = "MAIN"\n'
+        'host = "pacs.example.org"\n'
+        "port = 104\n"
+        'retrieve_method = "C-PULL"\n'
+    )
+
+    with pytest.raises(ConfigError):
+        load_config(path)
+
+
+def test_load_rejects_empty_transfer_syntaxes(tmp_path: Path) -> None:
+    path = tmp_path / "config.toml"
+    path.write_text("transfer_syntaxes = []\n")
+
+    with pytest.raises(ConfigError):
+        load_config(path)
+
+
+def test_load_rejects_unknown_transfer_syntax(tmp_path: Path) -> None:
+    path = tmp_path / "config.toml"
+    path.write_text('transfer_syntaxes = ["1.2.3.4.5"]\n')
+
+    with pytest.raises(ConfigError):
+        load_config(path)
 
 
 def test_save_creates_parent_dirs(tmp_path: Path) -> None:

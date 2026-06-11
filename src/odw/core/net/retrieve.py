@@ -43,9 +43,16 @@ _STATUS_MESSAGES = {
 class RetrieveScu:
     """Blocking Study Root C-GET/C-MOVE SCU. Threading is the caller's concern."""
 
-    def __init__(self, local_aet: str, node: PacsNode) -> None:
+    def __init__(
+        self,
+        local_aet: str,
+        node: PacsNode,
+        *,
+        transfer_syntaxes: list[str] | None = None,
+    ) -> None:
         self._local_aet = local_aet
         self._node = node
+        self._transfer_syntaxes = transfer_syntaxes
 
     def get_study(
         self,
@@ -60,7 +67,10 @@ class RetrieveScu:
         for context in StoragePresentationContexts[:_MAX_STORAGE_CONTEXTS]:
             # Storage presentation contexts always carry an abstract syntax.
             abstract_syntax = cast(UID, context.abstract_syntax)
-            ae.add_requested_context(abstract_syntax)
+            if self._transfer_syntaxes is None:
+                ae.add_requested_context(abstract_syntax)
+            else:
+                ae.add_requested_context(abstract_syntax, self._transfer_syntaxes)
             role = SCP_SCU_RoleSelectionNegotiation()
             role.sop_class_uid = abstract_syntax
             role.scu_role = False

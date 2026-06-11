@@ -4,6 +4,7 @@ import socket
 from collections.abc import Callable
 from typing import cast
 
+from pydicom.uid import UID
 from pynetdicom import AE, AllStoragePresentationContexts, evt
 from pynetdicom.transport import ThreadedAssociationServer
 
@@ -20,11 +21,13 @@ class StorageScp:
         port: int,
         store: DicomStore,
         on_instance: Callable[[InstanceRecord], None] | None = None,
+        transfer_syntaxes: list[str] | None = None,
     ) -> None:
         self._ae_title = ae_title
         self._requested_port = port
         self._store = store
         self._on_instance = on_instance
+        self._transfer_syntaxes = transfer_syntaxes
         self._server: ThreadedAssociationServer | None = None
         self._port: int | None = None
 
@@ -40,7 +43,13 @@ class StorageScp:
 
     def start(self) -> None:
         ae = AE(ae_title=self._ae_title)
-        ae.supported_contexts = AllStoragePresentationContexts
+        if self._transfer_syntaxes is None:
+            ae.supported_contexts = AllStoragePresentationContexts
+        else:
+            for context in AllStoragePresentationContexts:
+                # Storage presentation contexts always carry an abstract syntax.
+                abstract_syntax = cast(UID, context.abstract_syntax)
+                ae.add_supported_context(abstract_syntax, self._transfer_syntaxes)
         server = ae.start_server(
             ("0.0.0.0", self._requested_port),
             block=False,

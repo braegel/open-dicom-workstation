@@ -10,6 +10,7 @@ class PacsNode:
     ae_title: str
     host: str
     port: int
+    retrieve_method: str = "C-GET"  # "C-GET" or "C-MOVE"
 
 
 @dataclass(frozen=True)

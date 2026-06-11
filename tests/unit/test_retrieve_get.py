@@ -1,7 +1,8 @@
 """Tests for the C-GET retrieve SCU against the in-process mock PACS."""
 
 import pytest
-from pydicom.uid import generate_uid
+from pydicom import dcmread
+from pydicom.uid import ImplicitVRLittleEndian, generate_uid
 from tests.support.factory import make_series
 from tests.support.mock_pacs import MockPacs
 
@@ -45,6 +46,20 @@ def test_get_study_progress_callback(scu, store):
     last_completed, last_remaining = calls[-1]
     assert last_completed == 3
     assert last_remaining == 0
+
+
+def test_get_study_with_restricted_transfer_syntaxes(mock_pacs, store):
+    node = PacsNode("test", "MOCKPACS", "127.0.0.1", mock_pacs.port)
+    scu = RetrieveScu("ODW_TEST", node, transfer_syntaxes=[str(ImplicitVRLittleEndian)])
+
+    result = scu.get_study(STUDY_UID, store)
+
+    assert result.completed == 3
+    records = store.instances_for_series(SERIES_UID)
+    assert len(records) == 3
+    for record in records:
+        stored = dcmread(record.path)
+        assert stored.file_meta.TransferSyntaxUID == ImplicitVRLittleEndian
 
 
 def test_get_unknown_study_completes_with_zero(scu, store):

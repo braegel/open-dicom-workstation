@@ -4,7 +4,7 @@ import threading
 
 import pytest
 from pydicom import dcmread
-from pydicom.uid import CTImageStorage
+from pydicom.uid import CTImageStorage, ExplicitVRLittleEndian, ImplicitVRLittleEndian
 from pynetdicom import AE
 from tests.conftest import free_port
 from tests.support.factory import make_ct_dataset
@@ -78,6 +78,29 @@ def test_on_instance_callback_invoked_with_record(store):
     assert len(received) == 1
     assert isinstance(received[0], InstanceRecord)
     assert received[0].sop_uid == str(ds.SOPInstanceUID)
+
+
+def test_restricted_transfer_syntaxes_force_negotiated_encoding(store):
+    scp = StorageScp("ODW_SCP", 0, store, transfer_syntaxes=[str(ImplicitVRLittleEndian)])
+    scp.start()
+    try:
+        ds = make_ct_dataset()
+        ae = AE(ae_title="ODW_TEST")
+        ae.add_requested_context(CTImageStorage, [ImplicitVRLittleEndian, ExplicitVRLittleEndian])
+        assoc = ae.associate("127.0.0.1", scp.port, ae_title="ODW_SCP")
+        assert assoc.is_established
+        try:
+            status = assoc.send_c_store(ds)
+        finally:
+            assoc.release()
+        assert status.Status == 0x0000
+    finally:
+        scp.stop()
+
+    records = store.instances_for_series(str(ds.SeriesInstanceUID))
+    assert len(records) == 1
+    stored = dcmread(records[0].path)
+    assert stored.file_meta.TransferSyntaxUID == ImplicitVRLittleEndian
 
 
 def test_stop_releases_port(store):
