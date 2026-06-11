@@ -5,7 +5,10 @@ from collections.abc import Callable
 from pydicom.dataset import Dataset
 from pynetdicom import AE, StoragePresentationContexts, evt
 from pynetdicom.pdu_primitives import SCP_SCU_RoleSelectionNegotiation
-from pynetdicom.sop_class import StudyRootQueryRetrieveInformationModelGet
+from pynetdicom.sop_class import (
+    StudyRootQueryRetrieveInformationModelGet,
+    StudyRootQueryRetrieveInformationModelMove,
+)
 
 from odw.core.models import PacsNode, RetrieveResult
 from odw.core.net import PacsConnectionError
@@ -19,6 +22,18 @@ _MAX_STORAGE_CONTEXTS = 127
 def _count(status: Dataset, keyword: str) -> int:
     value = getattr(status, keyword, None)
     return 0 if value in (None, "") else int(value)
+
+
+def _study_identifier(study_uid: str) -> Dataset:
+    identifier = Dataset()
+    identifier.QueryRetrieveLevel = "STUDY"
+    identifier.StudyInstanceUID = study_uid
+    return identifier
+
+
+_STATUS_MESSAGES = {
+    0xA801: "Move destination unknown",
+}
 
 
 class RetrieveScu:
@@ -65,32 +80,65 @@ class RetrieveScu:
                 f"{self._node.host}:{self._node.port}"
             )
 
-        identifier = Dataset()
-        identifier.QueryRetrieveLevel = "STUDY"
-        identifier.StudyInstanceUID = study_uid
-
-        result = RetrieveResult(completed=0, failed=0, warnings=0)
         try:
-            for status, _rsp in assoc.send_c_get(
-                identifier, StudyRootQueryRetrieveInformationModelGet
-            ):
-                if status is None:
-                    raise PacsConnectionError(
-                        f"Connection to {self._node.ae_title} lost during C-GET"
-                    )
-                completed = _count(status, "NumberOfCompletedSuboperations")
-                remaining = _count(status, "NumberOfRemainingSuboperations")
-                if status.Status in _PENDING:
-                    if on_progress is not None:
-                        on_progress(completed, remaining)
-                else:
-                    if on_progress is not None:
-                        on_progress(completed, remaining)
-                    result = RetrieveResult(
-                        completed=completed,
-                        failed=_count(status, "NumberOfFailedSuboperations"),
-                        warnings=_count(status, "NumberOfWarningSuboperations"),
-                    )
+            responses = assoc.send_c_get(
+                _study_identifier(study_uid), StudyRootQueryRetrieveInformationModelGet
+            )
+            return self._collect(responses, "C-GET", on_progress)
         finally:
             assoc.release()
+
+    def move_study(
+        self,
+        study_uid: str,
+        dest_aet: str,
+        *,
+        on_progress: Callable[[int, int], None] | None = None,
+    ) -> RetrieveResult:
+        ae = AE(ae_title=self._local_aet)
+        ae.acse_timeout = 5
+        ae.add_requested_context(StudyRootQueryRetrieveInformationModelMove)
+        assoc = ae.associate(self._node.host, self._node.port, ae_title=self._node.ae_title)
+        if not assoc.is_established:
+            raise PacsConnectionError(
+                f"Could not associate with {self._node.ae_title} at "
+                f"{self._node.host}:{self._node.port}"
+            )
+        try:
+            responses = assoc.send_c_move(
+                _study_identifier(study_uid),
+                dest_aet,
+                StudyRootQueryRetrieveInformationModelMove,
+            )
+            return self._collect(responses, "C-MOVE", on_progress)
+        finally:
+            assoc.release()
+
+    def _collect(
+        self,
+        responses,
+        operation: str,
+        on_progress: Callable[[int, int], None] | None,
+    ) -> RetrieveResult:
+        """Drain pending responses, reporting progress; build the result from the final one."""
+        result = RetrieveResult(completed=0, failed=0, warnings=0)
+        for status, _rsp in responses:
+            if status is None:
+                raise PacsConnectionError(
+                    f"Connection to {self._node.ae_title} lost during {operation}"
+                )
+            completed = _count(status, "NumberOfCompletedSuboperations")
+            remaining = _count(status, "NumberOfRemainingSuboperations")
+            if on_progress is not None:
+                on_progress(completed, remaining)
+            if status.Status not in _PENDING:
+                result = RetrieveResult(
+                    completed=completed,
+                    failed=_count(status, "NumberOfFailedSuboperations"),
+                    warnings=_count(status, "NumberOfWarningSuboperations"),
+                    message=_STATUS_MESSAGES.get(
+                        status.Status,
+                        "" if status.Status == 0x0000 else f"Status 0x{status.Status:04X}",
+                    ),
+                )
         return result
