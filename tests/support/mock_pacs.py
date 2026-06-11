@@ -1,0 +1,125 @@
+"""In-process pynetdicom AE acting as a Query/Retrieve SCP for tests."""
+
+from fnmatch import fnmatchcase
+
+from pydicom.dataset import Dataset
+from pynetdicom import AE, evt
+from pynetdicom.sop_class import StudyRootQueryRetrieveInformationModelFind
+
+
+def _name_matches(pattern: str, value: str) -> bool:
+    """DICOM single-value wildcard matching; empty pattern matches everything."""
+    if not pattern:
+        return True
+    return fnmatchcase(value, pattern)
+
+
+class MockPacs:
+    """In-process pynetdicom AE acting as a Query/Retrieve SCP for tests."""
+
+    aet = "MOCKPACS"
+
+    def __init__(self) -> None:
+        self._instances: list[Dataset] = []
+        self._server = None
+        self._port: int | None = None
+        # Mapping of remote AE title -> (host, port); used by a later
+        # iteration to resolve C-MOVE destinations.
+        self.known_destinations: dict[str, tuple[str, int]] = {}
+
+    def add_instances(self, datasets: list[Dataset]) -> None:
+        self._instances.extend(datasets)
+
+    @property
+    def port(self) -> int:
+        if self._port is None:
+            raise RuntimeError("MockPacs is not running")
+        return self._port
+
+    def start(self) -> None:
+        ae = AE(ae_title=self.aet)
+        ae.add_supported_context(StudyRootQueryRetrieveInformationModelFind)
+        self._server = ae.start_server(
+            ("127.0.0.1", 0),
+            block=False,
+            evt_handlers=[(evt.EVT_C_FIND, self._handle_find)],
+        )
+        self._port = self._server.socket.getsockname()[1]
+
+    def stop(self) -> None:
+        if self._server is not None:
+            self._server.shutdown()
+            self._server = None
+            self._port = None
+
+    def __enter__(self) -> "MockPacs":
+        self.start()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+        self.stop()
+
+    # -- C-FIND handling ---------------------------------------------------
+
+    def _handle_find(self, event):
+        identifier = event.identifier
+        level = getattr(identifier, "QueryRetrieveLevel", "")
+        if level == "STUDY":
+            yield from self._find_studies(identifier)
+        elif level == "SERIES":
+            yield from self._find_series(identifier)
+
+    def _find_studies(self, query: Dataset):
+        name_filter = str(getattr(query, "PatientName", "") or "")
+        date_filter = str(getattr(query, "StudyDate", "") or "")
+        uid_filter = str(getattr(query, "StudyInstanceUID", "") or "")
+
+        studies: dict[str, list[Dataset]] = {}
+        for ds in self._instances:
+            studies.setdefault(ds.StudyInstanceUID, []).append(ds)
+
+        for study_uid, instances in studies.items():
+            first = instances[0]
+            if not _name_matches(name_filter, str(first.PatientName)):
+                continue
+            if date_filter and str(first.StudyDate) != date_filter:
+                continue
+            if uid_filter and study_uid != uid_filter:
+                continue
+
+            series_uids = {ds.SeriesInstanceUID for ds in instances}
+            modalities = sorted({str(ds.Modality) for ds in instances})
+
+            rsp = Dataset()
+            rsp.QueryRetrieveLevel = "STUDY"
+            rsp.StudyInstanceUID = study_uid
+            rsp.PatientName = first.PatientName
+            rsp.PatientID = first.PatientID
+            rsp.StudyDate = first.StudyDate
+            rsp.StudyDescription = getattr(first, "StudyDescription", "")
+            rsp.AccessionNumber = getattr(first, "AccessionNumber", "")
+            rsp.ModalitiesInStudy = modalities
+            rsp.NumberOfStudyRelatedSeries = len(series_uids)
+            rsp.NumberOfStudyRelatedInstances = len(instances)
+            yield 0xFF00, rsp
+
+    def _find_series(self, query: Dataset):
+        study_uid = str(getattr(query, "StudyInstanceUID", "") or "")
+
+        series: dict[str, list[Dataset]] = {}
+        for ds in self._instances:
+            if study_uid and ds.StudyInstanceUID != study_uid:
+                continue
+            series.setdefault(ds.SeriesInstanceUID, []).append(ds)
+
+        for series_uid, instances in series.items():
+            first = instances[0]
+            rsp = Dataset()
+            rsp.QueryRetrieveLevel = "SERIES"
+            rsp.StudyInstanceUID = first.StudyInstanceUID
+            rsp.SeriesInstanceUID = series_uid
+            rsp.Modality = first.Modality
+            rsp.SeriesNumber = getattr(first, "SeriesNumber", None)
+            rsp.SeriesDescription = getattr(first, "SeriesDescription", "")
+            rsp.NumberOfSeriesRelatedInstances = len(instances)
+            yield 0xFF00, rsp
