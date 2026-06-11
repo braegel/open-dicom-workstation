@@ -29,6 +29,10 @@ class StorageScp:
         self._port: int | None = None
 
     @property
+    def is_running(self) -> bool:
+        return self._server is not None
+
+    @property
     def port(self) -> int:
         if self._port is None:
             raise RuntimeError("StorageScp is not running")

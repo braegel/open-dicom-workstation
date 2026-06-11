@@ -9,27 +9,32 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="62"/>
+        <location filename="../main_window.py" line="61"/>
         <source>Main</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="64"/>
+        <location filename="../main_window.py" line="63"/>
         <source>Query PACS…</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="66"/>
+        <location filename="../main_window.py" line="65"/>
         <source>Settings…</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="68"/>
+        <location filename="../main_window.py" line="67"/>
         <source>Back to studies</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="130"/>
+        <location filename="../main_window.py" line="82"/>
+        <source>Could not listen on port {port} (already in use) — C-MOVE retrieve is disabled</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../main_window.py" line="142"/>
         <source>Restart to apply network settings</source>
         <translation type="unfinished"></translation>
     </message>

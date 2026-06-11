@@ -57,7 +57,6 @@ class MainWindow(QMainWindow):
             self._store,
             on_instance=self._bridge.notify,
         )
-        self._scp.start()
 
         toolbar = self.addToolBar(self.tr("Main"))
         toolbar.setObjectName("main_toolbar")
@@ -70,6 +69,19 @@ class MainWindow(QMainWindow):
         self.action_back.setVisible(False)
 
         self.statusBar()
+        self._start_scp()
+
+    def _start_scp(self) -> None:
+        try:
+            self._scp.start()
+        except OSError:
+            # Another instance or PACS tool holds the port; viewing and C-GET
+            # still work, only incoming C-STORE (and thus C-MOVE) is unavailable.
+            self.statusBar().showMessage(
+                self.tr(
+                    "Could not listen on port {port} (already in use) — C-MOVE retrieve is disabled"
+                ).format(port=self._config.listen_port)
+            )
 
     # -- read-only state for tests / callers -----------------------------------
 

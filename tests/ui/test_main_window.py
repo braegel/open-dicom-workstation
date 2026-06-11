@@ -1,5 +1,7 @@
 """Tests for the main window, settings dialog and application entry helpers."""
 
+import socket
+
 import pytest
 from PySide6.QtCore import QLocale
 from tests.support.factory import make_ct_dataset, make_series
@@ -61,6 +63,26 @@ def test_scp_ingest_triggers_browser_refresh(qtbot, window):
 
     qtbot.wait(700)
     assert window.browser.studies_view.model().rowCount() == 1
+
+
+def test_busy_listen_port_degrades_gracefully(qtbot, tmp_path):
+    # A second instance (or another PACS tool) may already hold the port:
+    # the app must still come up — viewing and C-GET work without a listener.
+    blocker = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    blocker.bind(("0.0.0.0", 0))
+    blocker.listen(1)
+    busy_port = blocker.getsockname()[1]
+    try:
+        config = AppConfig(listen_port=busy_port, storage_dir=tmp_path / "dicom", nodes=[])
+        w = MainWindow(config, config_path=tmp_path / "config.toml")
+        qtbot.addWidget(w)
+
+        assert not w.scp.is_running
+        assert str(busy_port) in w.statusBar().currentMessage()
+        assert w.stacked.currentIndex() == 0
+        w.close()
+    finally:
+        blocker.close()
 
 
 def test_close_event_stops_scp(window):
