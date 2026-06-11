@@ -3,12 +3,14 @@
 import socket
 
 import pytest
-from PySide6.QtCore import QLocale
+from pydicom.uid import ImplicitVRLittleEndian
+from PySide6.QtCore import QLocale, Qt
 from tests.support.factory import make_ct_dataset, make_series
 
 from odw.app import install_translator
 from odw.core.config import AppConfig
 from odw.core.models import PacsNode
+from odw.core.transfer import DEFAULT_TRANSFER_SYNTAXES
 from odw.ui.main_window import MainWindow
 from odw.ui.settings_dialog import SettingsDialog
 
@@ -107,6 +109,11 @@ def test_settings_dialog_roundtrip(qtbot, tmp_path):
     row = dialog.nodes_table.rowCount() - 1
     for col, value in enumerate(("Main PACS", "PACS1", "10.0.0.5", "11112")):
         dialog.nodes_table.item(row, col).setText(value)
+    dialog.nodes_table.cellWidget(row, 4).setCurrentText("C-MOVE")
+    for i in range(dialog.syntax_list.count()):
+        item = dialog.syntax_list.item(i)
+        checked = item.data(Qt.ItemDataRole.UserRole) == str(ImplicitVRLittleEndian)
+        item.setCheckState(Qt.CheckState.Checked if checked else Qt.CheckState.Unchecked)
 
     result = dialog.result_config()
 
@@ -115,8 +122,26 @@ def test_settings_dialog_roundtrip(qtbot, tmp_path):
     assert result.storage_dir == tmp_path / "dicom"
     assert result.nodes == [
         PacsNode(name="Existing", ae_title="EXIST", host="10.0.0.1", port=104),
-        PacsNode(name="Main PACS", ae_title="PACS1", host="10.0.0.5", port=11112),
+        PacsNode(
+            name="Main PACS",
+            ae_title="PACS1",
+            host="10.0.0.5",
+            port=11112,
+            retrieve_method="C-MOVE",
+        ),
     ]
+    assert result.transfer_syntaxes == [str(ImplicitVRLittleEndian)]
+
+
+def test_settings_dialog_no_syntax_checked_falls_back_to_defaults(qtbot, tmp_path):
+    config = AppConfig(storage_dir=tmp_path / "dicom", nodes=[])
+    dialog = SettingsDialog(config)
+    qtbot.addWidget(dialog)
+
+    for i in range(dialog.syntax_list.count()):
+        dialog.syntax_list.item(i).setCheckState(Qt.CheckState.Unchecked)
+
+    assert dialog.result_config().transfer_syntaxes == DEFAULT_TRANSFER_SYNTAXES
 
 
 def test_install_translator_without_qm_returns_false(qapp):

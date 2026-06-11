@@ -56,6 +56,7 @@ class MainWindow(QMainWindow):
             config.listen_port,
             self._store,
             on_instance=self._bridge.notify,
+            transfer_syntaxes=config.transfer_syntaxes,
         )
 
         toolbar = self.addToolBar(self.tr("Main"))

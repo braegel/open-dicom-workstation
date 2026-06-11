@@ -9,32 +9,32 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="61"/>
+        <location filename="../main_window.py" line="62"/>
         <source>Main</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="63"/>
+        <location filename="../main_window.py" line="64"/>
         <source>Query PACS…</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="65"/>
+        <location filename="../main_window.py" line="66"/>
         <source>Settings…</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="67"/>
+        <location filename="../main_window.py" line="68"/>
         <source>Back to studies</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="82"/>
+        <location filename="../main_window.py" line="83"/>
         <source>Could not listen on port {port} (already in use) — C-MOVE retrieve is disabled</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="142"/>
+        <location filename="../main_window.py" line="143"/>
         <source>Restart to apply network settings</source>
         <translation type="unfinished"></translation>
     </message>
@@ -58,46 +58,41 @@
     </message>
     <message>
         <location filename="../query_dialog.py" line="136"/>
-        <source>Retrieve (C-GET)</source>
+        <source>Retrieve</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../query_dialog.py" line="138"/>
-        <source>Retrieve (C-MOVE)</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../query_dialog.py" line="148"/>
+        <location filename="../query_dialog.py" line="146"/>
         <source>PACS node</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../query_dialog.py" line="149"/>
+        <location filename="../query_dialog.py" line="147"/>
         <source>Patient name</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../query_dialog.py" line="150"/>
+        <location filename="../query_dialog.py" line="148"/>
         <source>Study date</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../query_dialog.py" line="174"/>
+        <location filename="../query_dialog.py" line="170"/>
         <source>No PACS node configured</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../query_dialog.py" line="180"/>
+        <location filename="../query_dialog.py" line="176"/>
         <source>Select a study first</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../query_dialog.py" line="216"/>
+        <location filename="../query_dialog.py" line="212"/>
         <source>Found {n} studies</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../query_dialog.py" line="265"/>
+        <location filename="../query_dialog.py" line="259"/>
         <source>Retrieved {n} instances</source>
         <translation type="unfinished"></translation>
     </message>
@@ -161,62 +156,72 @@
 <context>
     <name>SettingsDialog</name>
     <message>
-        <location filename="../settings_dialog.py" line="32"/>
+        <location filename="../settings_dialog.py" line="40"/>
         <source>Settings</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../settings_dialog.py" line="44"/>
+        <location filename="../settings_dialog.py" line="52"/>
         <source>Browse…</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../settings_dialog.py" line="51"/>
+        <location filename="../settings_dialog.py" line="60"/>
         <source>Name</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../settings_dialog.py" line="51"/>
+        <location filename="../settings_dialog.py" line="61"/>
         <source>AE Title</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../settings_dialog.py" line="51"/>
+        <location filename="../settings_dialog.py" line="62"/>
         <source>Host</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../settings_dialog.py" line="51"/>
+        <location filename="../settings_dialog.py" line="63"/>
         <source>Port</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../settings_dialog.py" line="56"/>
+        <location filename="../settings_dialog.py" line="64"/>
+        <source>Retrieve</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../settings_dialog.py" line="70"/>
         <source>Add node</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../settings_dialog.py" line="59"/>
+        <location filename="../settings_dialog.py" line="73"/>
         <source>Remove node</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../settings_dialog.py" line="75"/>
+        <location filename="../settings_dialog.py" line="88"/>
+        <source>Transfer syntaxes</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../settings_dialog.py" line="105"/>
         <source>Local AE title</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../settings_dialog.py" line="76"/>
+        <location filename="../settings_dialog.py" line="106"/>
         <source>Listen port</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../settings_dialog.py" line="77"/>
+        <location filename="../settings_dialog.py" line="107"/>
         <source>Storage directory</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../settings_dialog.py" line="108"/>
+        <location filename="../settings_dialog.py" line="143"/>
         <source>Choose storage directory</source>
         <translation type="unfinished"></translation>
     </message>

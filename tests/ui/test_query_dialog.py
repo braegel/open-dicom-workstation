@@ -24,8 +24,14 @@ def mock_pacs():
         yield pacs
 
 
-def _config_for(pacs: MockPacs, storage_dir) -> AppConfig:
-    node = PacsNode(name="Mock PACS", ae_title=pacs.aet, host="127.0.0.1", port=pacs.port)
+def _config_for(pacs: MockPacs, storage_dir, retrieve_method: str = "C-GET") -> AppConfig:
+    node = PacsNode(
+        name="Mock PACS",
+        ae_title=pacs.aet,
+        host="127.0.0.1",
+        port=pacs.port,
+        retrieve_method=retrieve_method,
+    )
     return AppConfig(local_ae_title="ODW", listen_port=0, storage_dir=storage_dir, nodes=[node])
 
 
@@ -67,12 +73,13 @@ def test_search_error_sets_status_not_exception(qtbot, store, tmp_path):
 
 
 def test_retrieve_get_ingests_study(qtbot, store, tmp_path, mock_pacs):
-    dialog = _make_dialog(qtbot, _config_for(mock_pacs, tmp_path / "dicom"), store)
+    config = _config_for(mock_pacs, tmp_path / "dicom", retrieve_method="C-GET")
+    dialog = _make_dialog(qtbot, config, store)
     _search(qtbot, dialog, "DOE*")
     dialog.results_view.selectRow(0)
 
     with qtbot.waitSignal(dialog.study_retrieved, timeout=10000) as blocker:
-        qtbot.mouseClick(dialog.get_button, Qt.LeftButton)
+        qtbot.mouseClick(dialog.retrieve_button, Qt.LeftButton)
 
     assert blocker.args == [mock_pacs.doe_study_uid]
     qtbot.waitUntil(
@@ -82,7 +89,7 @@ def test_retrieve_get_ingests_study(qtbot, store, tmp_path, mock_pacs):
 
 
 def test_retrieve_move_ingests_study(qtbot, store, tmp_path, mock_pacs):
-    config = _config_for(mock_pacs, tmp_path / "dicom")
+    config = _config_for(mock_pacs, tmp_path / "dicom", retrieve_method="C-MOVE")
     scp = StorageScp(config.local_ae_title, 0, store)
     scp.start()
     mock_pacs.known_destinations[config.local_ae_title] = ("127.0.0.1", scp.port)
@@ -92,7 +99,7 @@ def test_retrieve_move_ingests_study(qtbot, store, tmp_path, mock_pacs):
         dialog.results_view.selectRow(0)
 
         with qtbot.waitSignal(dialog.study_retrieved, timeout=10000) as blocker:
-            qtbot.mouseClick(dialog.move_button, Qt.LeftButton)
+            qtbot.mouseClick(dialog.retrieve_button, Qt.LeftButton)
 
         assert blocker.args == [mock_pacs.doe_study_uid]
         qtbot.waitUntil(

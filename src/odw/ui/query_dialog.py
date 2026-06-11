@@ -133,10 +133,8 @@ class QueryDialog(QDialog):
         self.results_view.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.results_view.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
 
-        self.get_button = QPushButton(self.tr("Retrieve (C-GET)"), self)
-        self.get_button.setObjectName("get_button")
-        self.move_button = QPushButton(self.tr("Retrieve (C-MOVE)"), self)
-        self.move_button.setObjectName("move_button")
+        self.retrieve_button = QPushButton(self.tr("Retrieve"), self)
+        self.retrieve_button.setObjectName("retrieve_button")
 
         self.progress_bar = QProgressBar(self)
         self.progress_bar.setObjectName("progress_bar")
@@ -152,8 +150,7 @@ class QueryDialog(QDialog):
         buttons = QHBoxLayout()
         buttons.addWidget(self.search_button)
         buttons.addStretch()
-        buttons.addWidget(self.get_button)
-        buttons.addWidget(self.move_button)
+        buttons.addWidget(self.retrieve_button)
 
         layout = QVBoxLayout(self)
         layout.addLayout(form)
@@ -163,8 +160,7 @@ class QueryDialog(QDialog):
         layout.addWidget(self.status_label)
 
         self.search_button.clicked.connect(self._on_search)
-        self.get_button.clicked.connect(self._on_get)
-        self.move_button.clicked.connect(self._on_move)
+        self.retrieve_button.clicked.connect(self._on_retrieve)
 
     # -- helpers ---------------------------------------------------------------
 
@@ -182,7 +178,7 @@ class QueryDialog(QDialog):
         return self.results_model.study_at(rows[0].row())
 
     def _set_busy(self, busy: bool) -> None:
-        for button in (self.search_button, self.get_button, self.move_button):
+        for button in (self.search_button, self.retrieve_button):
             button.setEnabled(not busy)
 
     def _start(self, signals: WorkerSignals) -> None:
@@ -217,32 +213,30 @@ class QueryDialog(QDialog):
 
     # -- retrieve ----------------------------------------------------------------
 
-    def _on_get(self) -> None:
+    def _on_retrieve(self) -> None:
+        """Retrieve the selected study using the node's configured method."""
         node = self._current_node()
         study = self._selected_study()
         if node is None or study is None:
             return
-        scu = RetrieveScu(self._config.local_ae_title, node)
-        self._start_retrieve(
-            run_in_pool(scu.get_study, study.study_uid, self._store, forward_progress=True),
-            study.study_uid,
-        )
-
-    def _on_move(self) -> None:
-        node = self._current_node()
-        study = self._selected_study()
-        if node is None or study is None:
-            return
-        scu = RetrieveScu(self._config.local_ae_title, node)
-        self._start_retrieve(
-            run_in_pool(
+        if node.retrieve_method == "C-MOVE":
+            scu = RetrieveScu(self._config.local_ae_title, node)
+            signals = run_in_pool(
                 scu.move_study,
                 study.study_uid,
                 self._config.local_ae_title,
                 forward_progress=True,
-            ),
-            study.study_uid,
-        )
+            )
+        else:
+            scu = RetrieveScu(
+                self._config.local_ae_title,
+                node,
+                transfer_syntaxes=self._config.transfer_syntaxes,
+            )
+            signals = run_in_pool(
+                scu.get_study, study.study_uid, self._store, forward_progress=True
+            )
+        self._start_retrieve(signals, study.study_uid)
 
     def _start_retrieve(self, signals: WorkerSignals, study_uid: str) -> None:
         self._set_busy(True)

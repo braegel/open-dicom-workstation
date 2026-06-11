@@ -26,6 +26,12 @@ Configure your PACS node (AE title, host, port) in *Settings*.
 - **C-MOVE** requires that your workstation's AE title, host and listen port
   (default `ODW`, port 11112) are registered as a known destination on the PACS.
 
+The retrieve method (C-GET or C-MOVE) is configured per PACS node in *Settings*;
+the query dialog's *Retrieve* button uses whichever method the node is set to.
+The transfer syntaxes ODW offers and accepts are configured globally in *Settings* —
+note that compressed syntaxes (JPEG, JPEG 2000, RLE, …) may require extra pixel-data
+decoders such as `pylibjpeg` for viewing.
+
 ## Development
 
 This project is strictly test-driven: every change starts with a failing test.

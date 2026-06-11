@@ -2,13 +2,18 @@
 
 from pathlib import Path
 
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
+    QComboBox,
     QDialog,
     QDialogButtonBox,
     QFileDialog,
     QFormLayout,
+    QGroupBox,
     QHBoxLayout,
     QLineEdit,
+    QListWidget,
+    QListWidgetItem,
     QPushButton,
     QSpinBox,
     QTableWidget,
@@ -17,10 +22,13 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from odw.core.config import AppConfig
+from odw.core.config import RETRIEVE_METHODS, AppConfig
 from odw.core.models import PacsNode
+from odw.core.transfer import DEFAULT_TRANSFER_SYNTAXES, TRANSFER_SYNTAXES
 
-_NODE_COLUMNS = 4
+_NODE_TEXT_COLUMNS = 4
+_NODE_COLUMNS = 5
+_RETRIEVE_COLUMN = 4
 _DEFAULT_NODE_PORT = "104"
 
 
@@ -48,7 +56,13 @@ class SettingsDialog(QDialog):
         self.nodes_table = QTableWidget(0, _NODE_COLUMNS, self)
         self.nodes_table.setObjectName("nodes_table")
         self.nodes_table.setHorizontalHeaderLabels(
-            (self.tr("Name"), self.tr("AE Title"), self.tr("Host"), self.tr("Port"))
+            (
+                self.tr("Name"),
+                self.tr("AE Title"),
+                self.tr("Host"),
+                self.tr("Port"),
+                self.tr("Retrieve"),
+            )
         )
         for node in config.nodes:
             self._append_node_row(node)
@@ -59,6 +73,22 @@ class SettingsDialog(QDialog):
         self.remove_node_button = QPushButton(self.tr("Remove node"), self)
         self.remove_node_button.setObjectName("remove_node_button")
         self.remove_node_button.clicked.connect(self._on_remove_node)
+
+        self.syntax_list = QListWidget(self)
+        self.syntax_list.setObjectName("syntax_list")
+        for uid, name in TRANSFER_SYNTAXES.items():
+            item = QListWidgetItem(name, self.syntax_list)
+            item.setData(Qt.ItemDataRole.UserRole, uid)
+            item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
+            item.setCheckState(
+                Qt.CheckState.Checked
+                if uid in config.transfer_syntaxes
+                else Qt.CheckState.Unchecked
+            )
+        self.syntax_group = QGroupBox(self.tr("Transfer syntaxes"), self)
+        self.syntax_group.setObjectName("syntax_group")
+        syntax_layout = QVBoxLayout(self.syntax_group)
+        syntax_layout.addWidget(self.syntax_list)
 
         self.button_box = QDialogButtonBox(
             QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel,
@@ -85,6 +115,7 @@ class SettingsDialog(QDialog):
         layout.addLayout(form)
         layout.addWidget(self.nodes_table)
         layout.addLayout(node_buttons)
+        layout.addWidget(self.syntax_group)
         layout.addWidget(self.button_box)
 
     def _append_node_row(self, node: PacsNode | None) -> None:
@@ -97,6 +128,10 @@ class SettingsDialog(QDialog):
         )
         for col, value in enumerate(values):
             self.nodes_table.setItem(row, col, QTableWidgetItem(value))
+        combo = QComboBox(self.nodes_table)
+        combo.addItems(RETRIEVE_METHODS)
+        combo.setCurrentText(node.retrieve_method if node is not None else RETRIEVE_METHODS[0])
+        self.nodes_table.setCellWidget(row, _RETRIEVE_COLUMN, combo)
 
     def _on_remove_node(self) -> None:
         row = self.nodes_table.currentRow()
@@ -115,19 +150,43 @@ class SettingsDialog(QDialog):
         nodes: list[PacsNode] = []
         for row in range(self.nodes_table.rowCount()):
             name, ae_title, host, port_text = (
-                self._cell_text(row, col) for col in range(_NODE_COLUMNS)
+                self._cell_text(row, col) for col in range(_NODE_TEXT_COLUMNS)
             )
             if not (name or ae_title or host):
                 continue  # skip rows left entirely empty
             if not (port_text.isdigit() and 1 <= int(port_text) <= 65535):
                 continue
-            nodes.append(PacsNode(name=name, ae_title=ae_title, host=host, port=int(port_text)))
+            nodes.append(
+                PacsNode(
+                    name=name,
+                    ae_title=ae_title,
+                    host=host,
+                    port=int(port_text),
+                    retrieve_method=self._retrieve_method(row),
+                )
+            )
         return AppConfig(
             local_ae_title=self.aet_edit.text().strip(),
             listen_port=self.port_spin.value(),
             storage_dir=Path(self.storage_dir_edit.text().strip()),
             nodes=nodes,
+            transfer_syntaxes=self._checked_syntaxes(),
         )
+
+    def _retrieve_method(self, row: int) -> str:
+        combo = self.nodes_table.cellWidget(row, _RETRIEVE_COLUMN)
+        if isinstance(combo, QComboBox):
+            return combo.currentText()
+        return RETRIEVE_METHODS[0]
+
+    def _checked_syntaxes(self) -> list[str]:
+        """Checked transfer syntax UIDs in catalog order; defaults if none is checked."""
+        checked = [
+            self.syntax_list.item(i).data(Qt.ItemDataRole.UserRole)
+            for i in range(self.syntax_list.count())
+            if self.syntax_list.item(i).checkState() == Qt.CheckState.Checked
+        ]
+        return checked if checked else list(DEFAULT_TRANSFER_SYNTAXES)
 
     def _cell_text(self, row: int, col: int) -> str:
         item = self.nodes_table.item(row, col)
