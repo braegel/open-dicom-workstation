@@ -14,6 +14,7 @@ from PySide6.QtWidgets import (
     QTableWidget,
     QTableWidgetItem,
     QVBoxLayout,
+    QWidget,
 )
 
 from odw.core.config import AppConfig
@@ -26,7 +27,7 @@ _DEFAULT_NODE_PORT = "104"
 class SettingsDialog(QDialog):
     """Edit the application configuration; read the result via :meth:`result_config`."""
 
-    def __init__(self, config: AppConfig, parent=None) -> None:
+    def __init__(self, config: AppConfig, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.setWindowTitle(self.tr("Settings"))
 
@@ -60,7 +61,8 @@ class SettingsDialog(QDialog):
         self.remove_node_button.clicked.connect(self._on_remove_node)
 
         self.button_box = QDialogButtonBox(
-            QDialogButtonBox.Ok | QDialogButtonBox.Cancel, parent=self
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel,
+            parent=self,
         )
         self.button_box.accepted.connect(self.accept)
         self.button_box.rejected.connect(self.reject)

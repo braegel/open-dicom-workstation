@@ -1,11 +1,13 @@
 """Synchronous C-GET/C-MOVE retrieve SCU. No Qt; blocking calls."""
 
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
+from typing import cast
 
 from pydicom.dataset import Dataset
+from pydicom.uid import UID
 from pynetdicom import AE, StoragePresentationContexts, evt
-from pynetdicom.pdu_primitives import SCP_SCU_RoleSelectionNegotiation
-from pynetdicom.sop_class import (
+from pynetdicom.pdu_primitives import _UI, SCP_SCU_RoleSelectionNegotiation
+from pynetdicom.sop_class import (  # type: ignore[attr-defined]
     StudyRootQueryRetrieveInformationModelGet,
     StudyRootQueryRetrieveInformationModelMove,
 )
@@ -21,7 +23,9 @@ _MAX_STORAGE_CONTEXTS = 127
 
 def _count(status: Dataset, keyword: str) -> int:
     value = getattr(status, keyword, None)
-    return 0 if value in (None, "") else int(value)
+    if value is None or value == "":
+        return 0
+    return int(value)
 
 
 def _study_identifier(study_uid: str) -> Dataset:
@@ -52,16 +56,18 @@ class RetrieveScu:
         ae = AE(ae_title=self._local_aet)
         ae.acse_timeout = 5
         ae.add_requested_context(StudyRootQueryRetrieveInformationModelGet)
-        ext_neg = []
+        ext_neg: list[_UI] = []
         for context in StoragePresentationContexts[:_MAX_STORAGE_CONTEXTS]:
-            ae.add_requested_context(context.abstract_syntax)
+            # Storage presentation contexts always carry an abstract syntax.
+            abstract_syntax = cast(UID, context.abstract_syntax)
+            ae.add_requested_context(abstract_syntax)
             role = SCP_SCU_RoleSelectionNegotiation()
-            role.sop_class_uid = context.abstract_syntax
+            role.sop_class_uid = abstract_syntax
             role.scu_role = False
             role.scp_role = True
             ext_neg.append(role)
 
-        def handle_store(event) -> int:
+        def handle_store(event: evt.Event) -> int:
             ds = event.dataset
             ds.file_meta = event.file_meta
             store.ingest(ds)
@@ -116,7 +122,7 @@ class RetrieveScu:
 
     def _collect(
         self,
-        responses,
+        responses: Iterator[tuple[Dataset, Dataset | None]],
         operation: str,
         on_progress: Callable[[int, int], None] | None,
     ) -> RetrieveResult:

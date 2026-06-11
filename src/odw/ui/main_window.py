@@ -15,7 +15,7 @@ from odw.ui.scp_bridge import ScpBridge
 from odw.ui.settings_dialog import SettingsDialog
 from odw.ui.study_browser import StudyBrowser
 from odw.ui.viewer import ViewerWidget
-from odw.ui.workers import run_in_pool
+from odw.ui.workers import WorkerSignals, run_in_pool
 
 _BROWSER_PAGE = 0
 _VIEWER_PAGE = 1
@@ -31,7 +31,7 @@ class MainWindow(QMainWindow):
         self._config = config
         self._config_path = config_path
         # Active worker signals are kept on self so they are not garbage collected.
-        self._load_signals = None
+        self._load_signals: WorkerSignals | None = None
 
         self._store = DicomStore(config.storage_dir)
 
@@ -125,7 +125,7 @@ class MainWindow(QMainWindow):
 
     def _open_settings_dialog(self) -> None:
         dialog = SettingsDialog(self._config, self)
-        if dialog.exec() == QDialog.Accepted:
+        if dialog.exec() == QDialog.DialogCode.Accepted:
             save_config(dialog.result_config(), self._config_path)
             self.statusBar().showMessage(self.tr("Restart to apply network settings"))
 

@@ -4,6 +4,7 @@ import sqlite3
 import threading
 from dataclasses import replace
 from pathlib import Path
+from typing import Any
 
 from pydicom import dcmread
 from pydicom.dataset import Dataset
@@ -44,7 +45,7 @@ CREATE INDEX IF NOT EXISTS idx_instances_series ON instances(series_pk);
 """
 
 
-def _opt_int(value) -> int | None:
+def _opt_int(value: Any) -> int | None:
     return None if value in (None, "") else int(value)
 
 

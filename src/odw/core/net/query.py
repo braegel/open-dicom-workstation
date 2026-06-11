@@ -3,7 +3,9 @@
 from pydicom.dataset import Dataset
 from pydicom.multival import MultiValue
 from pynetdicom import AE
-from pynetdicom.sop_class import StudyRootQueryRetrieveInformationModelFind
+from pynetdicom.sop_class import (  # type: ignore[attr-defined]
+    StudyRootQueryRetrieveInformationModelFind,
+)
 
 from odw.core.models import PacsNode, SeriesQueryResult, StudyQueryResult
 from odw.core.net import PacsConnectionError
@@ -22,7 +24,7 @@ def _text(ds: Dataset, keyword: str) -> str:
 
 def _number(ds: Dataset, keyword: str) -> int | None:
     value = getattr(ds, keyword, None)
-    if value in (None, ""):
+    if value is None or value == "":
         return None
     return int(value)
 

@@ -1,6 +1,15 @@
 """Query/retrieve dialog: C-FIND a PACS node, retrieve studies via C-GET or C-MOVE."""
 
-from PySide6.QtCore import QAbstractTableModel, QModelIndex, Qt, Signal
+from typing import Any
+
+from PySide6.QtCore import (
+    QAbstractTableModel,
+    QModelIndex,
+    QObject,
+    QPersistentModelIndex,
+    Qt,
+    Signal,
+)
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QComboBox,
@@ -13,6 +22,7 @@ from PySide6.QtWidgets import (
     QPushButton,
     QTableView,
     QVBoxLayout,
+    QWidget,
 )
 
 from odw.core.config import AppConfig
@@ -20,7 +30,7 @@ from odw.core.models import PacsNode, RetrieveResult, StudyQueryResult
 from odw.core.net.query import QueryScu
 from odw.core.net.retrieve import RetrieveScu
 from odw.core.storage import DicomStore
-from odw.ui.workers import run_in_pool
+from odw.ui.workers import WorkerSignals, run_in_pool
 
 
 class QueryResultsModel(QAbstractTableModel):
@@ -35,7 +45,7 @@ class QueryResultsModel(QAbstractTableModel):
         "num_instances",
     )
 
-    def __init__(self, parent=None) -> None:
+    def __init__(self, parent: QObject | None = None) -> None:
         super().__init__(parent)
         self._results: list[StudyQueryResult] = []
 
@@ -47,20 +57,35 @@ class QueryResultsModel(QAbstractTableModel):
     def study_at(self, row: int) -> StudyQueryResult:
         return self._results[row]
 
-    def rowCount(self, parent=QModelIndex()) -> int:  # noqa: B008
+    def rowCount(
+        self,
+        parent: QModelIndex | QPersistentModelIndex = QModelIndex(),  # noqa: B008
+    ) -> int:
         return 0 if parent.isValid() else len(self._results)
 
-    def columnCount(self, parent=QModelIndex()) -> int:  # noqa: B008
+    def columnCount(
+        self,
+        parent: QModelIndex | QPersistentModelIndex = QModelIndex(),  # noqa: B008
+    ) -> int:
         return 0 if parent.isValid() else len(self.COLUMNS)
 
-    def data(self, index: QModelIndex, role: int = Qt.DisplayRole):
-        if not index.isValid() or role != Qt.DisplayRole:
+    def data(
+        self,
+        index: QModelIndex | QPersistentModelIndex,
+        role: int = Qt.ItemDataRole.DisplayRole,
+    ) -> Any:
+        if not index.isValid() or role != Qt.ItemDataRole.DisplayRole:
             return None
         value = getattr(self._results[index.row()], self.COLUMNS[index.column()])
         return "" if value is None else str(value)
 
-    def headerData(self, section: int, orientation: Qt.Orientation, role: int = Qt.DisplayRole):
-        if orientation == Qt.Horizontal and role == Qt.DisplayRole:
+    def headerData(
+        self,
+        section: int,
+        orientation: Qt.Orientation,
+        role: int = Qt.ItemDataRole.DisplayRole,
+    ) -> Any:
+        if orientation == Qt.Orientation.Horizontal and role == Qt.ItemDataRole.DisplayRole:
             headers = (
                 self.tr("Patient Name"),
                 self.tr("Patient ID"),
@@ -78,13 +103,13 @@ class QueryDialog(QDialog):
 
     study_retrieved = Signal(str)
 
-    def __init__(self, config: AppConfig, store: DicomStore, parent=None) -> None:
+    def __init__(self, config: AppConfig, store: DicomStore, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.setWindowTitle(self.tr("Query PACS"))
         self._config = config
         self._store = store
         # Active worker signals are kept on self so they are not garbage collected.
-        self._active_signals = None
+        self._active_signals: WorkerSignals | None = None
 
         self.node_combo = QComboBox(self)
         self.node_combo.setObjectName("node_combo")
@@ -104,9 +129,9 @@ class QueryDialog(QDialog):
         self.results_view = QTableView(self)
         self.results_view.setObjectName("results_view")
         self.results_view.setModel(self.results_model)
-        self.results_view.setEditTriggers(QAbstractItemView.NoEditTriggers)
-        self.results_view.setSelectionBehavior(QAbstractItemView.SelectRows)
-        self.results_view.setSelectionMode(QAbstractItemView.SingleSelection)
+        self.results_view.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.results_view.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self.results_view.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
 
         self.get_button = QPushButton(self.tr("Retrieve (C-GET)"), self)
         self.get_button.setObjectName("get_button")
@@ -144,7 +169,7 @@ class QueryDialog(QDialog):
     # -- helpers ---------------------------------------------------------------
 
     def _current_node(self) -> PacsNode | None:
-        node = self.node_combo.currentData()
+        node: PacsNode | None = self.node_combo.currentData()
         if node is None:
             self.status_label.setText(self.tr("No PACS node configured"))
         return node
@@ -160,7 +185,7 @@ class QueryDialog(QDialog):
         for button in (self.search_button, self.get_button, self.move_button):
             button.setEnabled(not busy)
 
-    def _start(self, signals) -> None:
+    def _start(self, signals: WorkerSignals) -> None:
         signals.error.connect(self.status_label.setText)
         signals.finished.connect(self._on_finished)
         self._active_signals = signals
@@ -219,7 +244,7 @@ class QueryDialog(QDialog):
             study.study_uid,
         )
 
-    def _start_retrieve(self, signals, study_uid: str) -> None:
+    def _start_retrieve(self, signals: WorkerSignals, study_uid: str) -> None:
         self._set_busy(True)
         self.status_label.setText("")
         self.progress_bar.setRange(0, 0)  # busy until first progress report

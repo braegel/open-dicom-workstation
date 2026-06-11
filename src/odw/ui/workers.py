@@ -1,6 +1,7 @@
 """Thread-pool workers: run blocking callables off the UI thread, report via signals."""
 
 from collections.abc import Callable
+from typing import Any
 
 from PySide6.QtCore import QObject, QRunnable, QThreadPool, Signal
 
@@ -21,7 +22,7 @@ class Worker(QRunnable):
     keyword argument that re-emits as the ``progress`` signal.
     """
 
-    def __init__(self, fn: Callable[..., object], *args, **kwargs) -> None:
+    def __init__(self, fn: Callable[..., object], *args: Any, **kwargs: Any) -> None:
         super().__init__()
         forward_progress = kwargs.pop("forward_progress", False)
         self.signals = WorkerSignals()
@@ -44,7 +45,7 @@ class Worker(QRunnable):
             self.signals.finished.emit()
 
 
-def run_in_pool(fn: Callable[..., object], *args, **kwargs) -> WorkerSignals:
+def run_in_pool(fn: Callable[..., object], *args: Any, **kwargs: Any) -> WorkerSignals:
     """Start ``fn`` on the global thread pool; return the worker's signals."""
     worker = Worker(fn, *args, **kwargs)
     QThreadPool.globalInstance().start(worker)

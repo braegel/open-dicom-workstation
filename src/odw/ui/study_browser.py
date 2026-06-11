@@ -1,6 +1,15 @@
 """Study browser: table of local studies plus the series of the selected study."""
 
-from PySide6.QtCore import QAbstractTableModel, QModelIndex, Qt, Signal
+from typing import Any
+
+from PySide6.QtCore import (
+    QAbstractTableModel,
+    QModelIndex,
+    QObject,
+    QPersistentModelIndex,
+    Qt,
+    Signal,
+)
 from PySide6.QtWidgets import QAbstractItemView, QTableView, QVBoxLayout, QWidget
 
 from odw.core.models import SeriesRecord, StudyRecord
@@ -19,7 +28,7 @@ class StudyTableModel(QAbstractTableModel):
 
     COLUMNS = ("patient_name", "patient_id", "study_date", "description", "modalities")
 
-    def __init__(self, store: DicomStore, parent=None) -> None:
+    def __init__(self, store: DicomStore, parent: QObject | None = None) -> None:
         super().__init__(parent)
         self._store = store
         self._studies: list[StudyRecord] = store.studies()
@@ -32,22 +41,37 @@ class StudyTableModel(QAbstractTableModel):
     def study_at(self, row: int) -> StudyRecord:
         return self._studies[row]
 
-    def rowCount(self, parent=QModelIndex()) -> int:  # noqa: B008
+    def rowCount(
+        self,
+        parent: QModelIndex | QPersistentModelIndex = QModelIndex(),  # noqa: B008
+    ) -> int:
         return 0 if parent.isValid() else len(self._studies)
 
-    def columnCount(self, parent=QModelIndex()) -> int:  # noqa: B008
+    def columnCount(
+        self,
+        parent: QModelIndex | QPersistentModelIndex = QModelIndex(),  # noqa: B008
+    ) -> int:
         return 0 if parent.isValid() else len(self.COLUMNS)
 
-    def data(self, index: QModelIndex, role: int = Qt.DisplayRole):
-        if not index.isValid() or role != Qt.DisplayRole:
+    def data(
+        self,
+        index: QModelIndex | QPersistentModelIndex,
+        role: int = Qt.ItemDataRole.DisplayRole,
+    ) -> Any:
+        if not index.isValid() or role != Qt.ItemDataRole.DisplayRole:
             return None
         value = getattr(self._studies[index.row()], self.COLUMNS[index.column()])
         if self.COLUMNS[index.column()] == "study_date":
             return _format_study_date(value)
         return value
 
-    def headerData(self, section: int, orientation: Qt.Orientation, role: int = Qt.DisplayRole):
-        if orientation == Qt.Horizontal and role == Qt.DisplayRole:
+    def headerData(
+        self,
+        section: int,
+        orientation: Qt.Orientation,
+        role: int = Qt.ItemDataRole.DisplayRole,
+    ) -> Any:
+        if orientation == Qt.Orientation.Horizontal and role == Qt.ItemDataRole.DisplayRole:
             headers = (
                 self.tr("Patient Name"),
                 self.tr("Patient ID"),
@@ -64,7 +88,7 @@ class SeriesTableModel(QAbstractTableModel):
 
     COLUMNS = ("series_number", "modality", "description", "num_instances")
 
-    def __init__(self, parent=None) -> None:
+    def __init__(self, parent: QObject | None = None) -> None:
         super().__init__(parent)
         self._series: list[SeriesRecord] = []
 
@@ -76,20 +100,35 @@ class SeriesTableModel(QAbstractTableModel):
     def series_at(self, row: int) -> SeriesRecord:
         return self._series[row]
 
-    def rowCount(self, parent=QModelIndex()) -> int:  # noqa: B008
+    def rowCount(
+        self,
+        parent: QModelIndex | QPersistentModelIndex = QModelIndex(),  # noqa: B008
+    ) -> int:
         return 0 if parent.isValid() else len(self._series)
 
-    def columnCount(self, parent=QModelIndex()) -> int:  # noqa: B008
+    def columnCount(
+        self,
+        parent: QModelIndex | QPersistentModelIndex = QModelIndex(),  # noqa: B008
+    ) -> int:
         return 0 if parent.isValid() else len(self.COLUMNS)
 
-    def data(self, index: QModelIndex, role: int = Qt.DisplayRole):
-        if not index.isValid() or role != Qt.DisplayRole:
+    def data(
+        self,
+        index: QModelIndex | QPersistentModelIndex,
+        role: int = Qt.ItemDataRole.DisplayRole,
+    ) -> Any:
+        if not index.isValid() or role != Qt.ItemDataRole.DisplayRole:
             return None
         value = getattr(self._series[index.row()], self.COLUMNS[index.column()])
         return "" if value is None else str(value)
 
-    def headerData(self, section: int, orientation: Qt.Orientation, role: int = Qt.DisplayRole):
-        if orientation == Qt.Horizontal and role == Qt.DisplayRole:
+    def headerData(
+        self,
+        section: int,
+        orientation: Qt.Orientation,
+        role: int = Qt.ItemDataRole.DisplayRole,
+    ) -> Any:
+        if orientation == Qt.Orientation.Horizontal and role == Qt.ItemDataRole.DisplayRole:
             headers = (
                 self.tr("Series #"),
                 self.tr("Modality"),
@@ -101,9 +140,9 @@ class SeriesTableModel(QAbstractTableModel):
 
 
 def _configure_view(view: QTableView) -> None:
-    view.setEditTriggers(QAbstractItemView.NoEditTriggers)
-    view.setSelectionBehavior(QAbstractItemView.SelectRows)
-    view.setSelectionMode(QAbstractItemView.SingleSelection)
+    view.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+    view.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+    view.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
     view.setSortingEnabled(False)
 
 
@@ -112,7 +151,7 @@ class StudyBrowser(QWidget):
 
     series_activated = Signal(str)
 
-    def __init__(self, store: DicomStore, parent=None) -> None:
+    def __init__(self, store: DicomStore, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self._store = store
 

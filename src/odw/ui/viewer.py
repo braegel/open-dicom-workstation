@@ -2,6 +2,8 @@
 
 import math
 
+import numpy as np
+import numpy.typing as npt
 from pydicom.dataset import Dataset
 from PySide6.QtCore import QPoint, QPointF, Qt, Signal
 from PySide6.QtGui import (
@@ -30,7 +32,7 @@ class ViewerWidget(QWidget):
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
-        self.setFocusPolicy(Qt.StrongFocus)
+        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.setMouseTracking(False)
         self.setMinimumSize(256, 256)
 
@@ -46,7 +48,7 @@ class ViewerWidget(QWidget):
 
         # Rendering cache; the numpy buffer MUST stay referenced because
         # QImage wraps it without copying.
-        self._frame_buffer = None
+        self._frame_buffer: npt.NDArray[np.uint8] | None = None
         self._frame_image: QImage | None = None
         self._cache_key: tuple[int, float, float] | None = None
         self._render_error: str | None = None
@@ -122,7 +124,11 @@ class ViewerWidget(QWidget):
         event.accept()
 
     def mousePressEvent(self, event: QMouseEvent) -> None:
-        if event.button() in (Qt.LeftButton, Qt.RightButton, Qt.MiddleButton):
+        if event.button() in (
+            Qt.MouseButton.LeftButton,
+            Qt.MouseButton.RightButton,
+            Qt.MouseButton.MiddleButton,
+        ):
             self._drag_button = event.button()
             self._drag_pos = event.position()
             event.accept()
@@ -135,15 +141,15 @@ class ViewerWidget(QWidget):
             return
         delta = event.position() - self._drag_pos
         self._drag_pos = event.position()
-        if self._drag_button == Qt.LeftButton:
+        if self._drag_button == Qt.MouseButton.LeftButton:
             self._width = max(self._width + delta.x() * WIDTH_GAIN, 1.0)
             self._center += delta.y() * CENTER_GAIN
             self.update()
             self.view_changed.emit()
-        elif self._drag_button == Qt.RightButton:
+        elif self._drag_button == Qt.MouseButton.RightButton:
             self._zoom = min(max(self._zoom * math.exp(-delta.y() * ZOOM_GAIN), ZOOM_MIN), ZOOM_MAX)
             self.update()
-        elif self._drag_button == Qt.MiddleButton:
+        elif self._drag_button == Qt.MouseButton.MiddleButton:
             self._pan += delta
             self.update()
         event.accept()
@@ -160,7 +166,7 @@ class ViewerWidget(QWidget):
         event.accept()
 
     def keyPressEvent(self, event: QKeyEvent) -> None:
-        if event.key() == Qt.Key_R:
+        if event.key() == Qt.Key.Key_R:
             self.reset_view()
             event.accept()
         else:
@@ -170,19 +176,19 @@ class ViewerWidget(QWidget):
 
     def paintEvent(self, event: QPaintEvent) -> None:
         painter = QPainter(self)
-        painter.fillRect(self.rect(), Qt.black)
+        painter.fillRect(self.rect(), Qt.GlobalColor.black)
 
         if not self._datasets:
-            painter.setPen(Qt.white)
-            painter.drawText(self.rect(), Qt.AlignCenter, self.tr("No series loaded"))
+            painter.setPen(Qt.GlobalColor.white)
+            painter.drawText(self.rect(), Qt.AlignmentFlag.AlignCenter, self.tr("No series loaded"))
             return
 
         image = self._current_image()
         if image is None:
-            painter.setPen(Qt.white)
+            painter.setPen(Qt.GlobalColor.white)
             painter.drawText(
                 self.rect(),
-                Qt.AlignCenter,
+                Qt.AlignmentFlag.AlignCenter,
                 self._render_error or self.tr("Unable to render image"),
             )
             return
@@ -213,5 +219,7 @@ class ViewerWidget(QWidget):
         # Keep the numpy array alive: QImage does not copy the buffer.
         self._frame_buffer = frame
         height, width = frame.shape
-        self._frame_image = QImage(frame.data, width, height, width, QImage.Format_Grayscale8)
+        self._frame_image = QImage(
+            frame.data, width, height, width, QImage.Format.Format_Grayscale8
+        )
         return self._frame_image
