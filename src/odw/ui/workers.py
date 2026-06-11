@@ -3,7 +3,7 @@
 from collections.abc import Callable
 from typing import Any
 
-from PySide6.QtCore import QObject, QRunnable, QThreadPool, Signal
+from PySide6.QtCore import QObject, QRunnable, QThreadPool, QTimer, Signal
 
 
 class WorkerSignals(QObject):
@@ -46,7 +46,11 @@ class Worker(QRunnable):
 
 
 def run_in_pool(fn: Callable[..., object], *args: Any, **kwargs: Any) -> WorkerSignals:
-    """Start ``fn`` on the global thread pool; return the worker's signals."""
+    """Start ``fn`` on the global thread pool; return the worker's signals.
+
+    The start is deferred to the next event-loop iteration so the caller can
+    connect to the signals first — emissions to unconnected signals are lost.
+    """
     worker = Worker(fn, *args, **kwargs)
-    QThreadPool.globalInstance().start(worker)
+    QTimer.singleShot(0, lambda: QThreadPool.globalInstance().start(worker))
     return worker.signals
