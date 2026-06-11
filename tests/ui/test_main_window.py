@@ -5,14 +5,17 @@ import socket
 import pytest
 from pydicom.uid import ImplicitVRLittleEndian
 from PySide6.QtCore import QLocale, Qt
+from PySide6.QtGui import QAction
+from PySide6.QtWidgets import QDialogButtonBox, QLineEdit, QMenu
 from tests.support.factory import make_ct_dataset, make_series
 
 from odw.app import install_translator
-from odw.core.config import AppConfig
+from odw.core.config import DEFAULT_VIEWER_SHORTCUTS, AppConfig, load_config
 from odw.core.models import PacsNode
 from odw.core.transfer import DEFAULT_TRANSFER_SYNTAXES
 from odw.ui.main_window import MainWindow
 from odw.ui.settings_dialog import SettingsDialog
+from odw.ui.shortcuts_dialog import ShortcutsDialog
 
 
 @pytest.fixture
@@ -146,3 +149,93 @@ def test_settings_dialog_no_syntax_checked_falls_back_to_defaults(qtbot, tmp_pat
 
 def test_install_translator_without_qm_returns_false(qapp):
     assert install_translator(qapp, QLocale("de_DE")) is False
+
+
+def test_tools_menu_lists_tools_with_shortcuts(window):
+    menu = window.findChild(QMenu, "menu_tools")
+    assert menu is not None
+
+    zoom_action = window.findChild(QAction, "action_tool_zoom")
+    assert zoom_action.text() == "Zoom"
+    assert zoom_action.shortcut().toString() == "Z"
+
+    tool_actions = [a for a in menu.actions() if a.objectName().startswith("action_tool_")]
+    assert len(tool_actions) == 5
+    assert window.findChild(QAction, "action_tool_window").isChecked()
+
+
+def test_tool_action_switches_viewer_tool(window):
+    action = window.findChild(QAction, "action_tool_zoom")
+
+    action.trigger()
+
+    assert window.viewer.active_tool == "zoom"
+    assert action.isChecked()
+
+
+def test_viewer_tool_change_syncs_menu(window):
+    window.viewer.set_tool("length")
+
+    assert window.findChild(QAction, "action_tool_length").isChecked()
+
+
+def test_presets_menu_applies_window(window):
+    presets_menu = window.findChild(QMenu, "menu_presets")
+    assert presets_menu is not None
+    stroke_action = next(a for a in presets_menu.actions() if "Stroke" in a.text())
+    assert stroke_action.shortcut().toString() == "6"
+
+    stroke_action.trigger()
+
+    assert window.viewer.window_center == 32.0
+    assert window.viewer.window_width == 8.0
+
+
+def test_shortcuts_dialog_rejects_duplicates(qtbot):
+    dialog = ShortcutsDialog(dict(DEFAULT_VIEWER_SHORTCUTS))
+    qtbot.addWidget(dialog)
+    dialog.show()
+    dialog.findChild(QLineEdit, "edit_window").setText("Q")
+    dialog.findChild(QLineEdit, "edit_zoom").setText("Q")
+
+    dialog.button_box.button(QDialogButtonBox.StandardButton.Ok).click()
+
+    assert dialog.isVisible()
+    assert dialog.error_label.text() != ""
+
+
+def test_shortcuts_dialog_rejects_digits(qtbot):
+    dialog = ShortcutsDialog(dict(DEFAULT_VIEWER_SHORTCUTS))
+    qtbot.addWidget(dialog)
+    dialog.show()
+    dialog.findChild(QLineEdit, "edit_zoom").setText("5")
+
+    dialog.button_box.button(QDialogButtonBox.StandardButton.Ok).click()
+
+    assert dialog.isVisible()
+    assert dialog.error_label.text() != ""
+
+
+def test_edited_shortcuts_persist_and_apply(qtbot, tmp_path):
+    # The shared fixture uses listen_port=0 (ephemeral), which save_config would
+    # persist but load_config rejects; this round-trip needs a valid port.
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as probe:
+        probe.bind(("127.0.0.1", 0))
+        free_port = probe.getsockname()[1]
+    config = AppConfig(listen_port=free_port, storage_dir=tmp_path / "dicom", nodes=[])
+    window = MainWindow(config, config_path=tmp_path / "config.toml")
+    qtbot.addWidget(window)
+
+    dialog = ShortcutsDialog(dict(DEFAULT_VIEWER_SHORTCUTS))
+    qtbot.addWidget(dialog)
+    dialog.findChild(QLineEdit, "edit_zoom").setText("Y")
+
+    window._apply_shortcuts(dialog.result_shortcuts())
+
+    config = load_config(tmp_path / "config.toml")
+    assert config.viewer_shortcuts["zoom"] == "Y"
+    assert window.findChild(QAction, "action_tool_zoom").shortcut().toString() == "Y"
+
+    qtbot.keyClick(window.viewer, Qt.Key.Key_Y)
+    assert window.viewer.active_tool == "zoom"
+    window.close()

@@ -4,37 +4,77 @@
 <context>
     <name>MainWindow</name>
     <message>
-        <location filename="../main_window.py" line="30"/>
+        <location filename="../main_window.py" line="33"/>
         <source>Open DICOM Workstation</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="62"/>
+        <location filename="../main_window.py" line="65"/>
         <source>Main</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="64"/>
+        <location filename="../main_window.py" line="67"/>
         <source>Query PACS…</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="66"/>
+        <location filename="../main_window.py" line="69"/>
         <source>Settings…</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="68"/>
+        <location filename="../main_window.py" line="71"/>
         <source>Back to studies</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="83"/>
+        <location filename="../main_window.py" line="87"/>
+        <source>Tools</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../main_window.py" line="91"/>
+        <source>Windowing</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../main_window.py" line="92"/>
+        <source>Zoom</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../main_window.py" line="93"/>
+        <source>Measure length</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../main_window.py" line="94"/>
+        <source>Polygon ROI</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../main_window.py" line="95"/>
+        <source>Ellipse ROI</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../main_window.py" line="113"/>
+        <source>Window presets</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../main_window.py" line="125"/>
+        <source>Edit shortcuts…</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../main_window.py" line="158"/>
         <source>Could not listen on port {port} (already in use) — C-MOVE retrieve is disabled</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../main_window.py" line="143"/>
+        <location filename="../main_window.py" line="223"/>
         <source>Restart to apply network settings</source>
         <translation type="unfinished"></translation>
     </message>
@@ -227,6 +267,54 @@
     </message>
 </context>
 <context>
+    <name>ShortcutsDialog</name>
+    <message>
+        <location filename="../shortcuts_dialog.py" line="21"/>
+        <source>Edit shortcuts</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../shortcuts_dialog.py" line="25"/>
+        <source>Windowing</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../shortcuts_dialog.py" line="26"/>
+        <source>Zoom</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../shortcuts_dialog.py" line="27"/>
+        <source>Measure length</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../shortcuts_dialog.py" line="28"/>
+        <source>Polygon ROI</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../shortcuts_dialog.py" line="29"/>
+        <source>Ellipse ROI</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../shortcuts_dialog.py" line="30"/>
+        <source>Reset view</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../shortcuts_dialog.py" line="65"/>
+        <source>Each shortcut must be a single letter A-Z (digits are reserved for window presets)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../shortcuts_dialog.py" line="71"/>
+        <source>The same key is assigned to more than one action</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>StudyTableModel</name>
     <message>
         <location filename="../study_browser.py" line="76"/>
@@ -257,12 +345,12 @@
 <context>
     <name>ViewerWidget</name>
     <message>
-        <location filename="../viewer.py" line="183"/>
+        <location filename="../viewer.py" line="451"/>
         <source>No series loaded</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../viewer.py" line="192"/>
+        <location filename="../viewer.py" line="460"/>
         <source>Unable to render image</source>
         <translation type="unfinished"></translation>
     </message>

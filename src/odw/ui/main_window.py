@@ -1,20 +1,23 @@
 """Main window: study browser, slice viewer, query/retrieve and settings."""
 
+import dataclasses
 from pathlib import Path
 
 from pydicom.dataset import Dataset
-from PySide6.QtCore import QTimer
-from PySide6.QtGui import QCloseEvent
+from PySide6.QtCore import Qt, QTimer
+from PySide6.QtGui import QAction, QActionGroup, QCloseEvent, QKeySequence
 from PySide6.QtWidgets import QDialog, QMainWindow, QStackedWidget
 
 from odw.core.config import AppConfig, save_config
 from odw.core.net.scp import StorageScp
+from odw.core.presets import WINDOW_PRESETS, WindowPreset
 from odw.core.storage import DicomStore
 from odw.ui.query_dialog import QueryDialog
 from odw.ui.scp_bridge import ScpBridge
 from odw.ui.settings_dialog import SettingsDialog
+from odw.ui.shortcuts_dialog import ShortcutsDialog
 from odw.ui.study_browser import StudyBrowser
-from odw.ui.viewer import ViewerWidget
+from odw.ui.viewer import TOOLS, ViewerWidget
 from odw.ui.workers import WorkerSignals, run_in_pool
 
 _BROWSER_PAGE = 0
@@ -69,8 +72,80 @@ class MainWindow(QMainWindow):
         self.action_back.setObjectName("action_back")
         self.action_back.setVisible(False)
 
+        self._tool_actions: dict[str, QAction] = {}
+        self._build_tools_menu()
+        self._viewer.set_shortcuts(config.viewer_shortcuts)
+        self._apply_menu_shortcut_keys(config.viewer_shortcuts)
+        self._viewer.tool_changed.connect(self._on_tool_changed)
+
         self.statusBar()
         self._start_scp()
+
+    # -- tools menu --------------------------------------------------------------
+
+    def _build_tools_menu(self) -> None:
+        menu = self.menuBar().addMenu(self.tr("Tools"))
+        menu.setObjectName("menu_tools")
+
+        labels = {
+            "window": self.tr("Windowing"),
+            "zoom": self.tr("Zoom"),
+            "length": self.tr("Measure length"),
+            "polygon": self.tr("Polygon ROI"),
+            "ellipse": self.tr("Ellipse ROI"),
+        }
+        group = QActionGroup(self)
+        group.setExclusive(True)
+        for tool in TOOLS:
+            action = QAction(labels[tool], self)
+            action.setObjectName(f"action_tool_{tool}")
+            action.setCheckable(True)
+            # The viewer's keyPressEvent handles the letter keys; a widget-scoped
+            # context keeps the key visible in the menu without an ambiguous
+            # application-wide shortcut competing with the viewer.
+            action.setShortcutContext(Qt.ShortcutContext.WidgetShortcut)
+            action.triggered.connect(lambda _checked=False, t=tool: self._viewer.set_tool(t))
+            group.addAction(action)
+            menu.addAction(action)
+            self._tool_actions[tool] = action
+        self._tool_actions["window"].setChecked(True)
+
+        presets_menu = menu.addMenu(self.tr("Window presets"))
+        presets_menu.setObjectName("menu_presets")
+        for preset in WINDOW_PRESETS:
+            text = f"{preset.key}  {preset.name}  (C {preset.center:g} / W {preset.width:g})"
+            preset_action = QAction(text, self)
+            preset_action.setObjectName(f"action_preset_{preset.key}")
+            preset_action.setShortcut(QKeySequence(preset.key))
+            preset_action.setShortcutContext(Qt.ShortcutContext.WidgetShortcut)
+            preset_action.triggered.connect(lambda _checked=False, p=preset: self._apply_preset(p))
+            presets_menu.addAction(preset_action)
+
+        menu.addSeparator()
+        self.action_edit_shortcuts = QAction(self.tr("Edit shortcuts…"), self)
+        self.action_edit_shortcuts.setObjectName("action_edit_shortcuts")
+        self.action_edit_shortcuts.triggered.connect(self._open_shortcuts_dialog)
+        menu.addAction(self.action_edit_shortcuts)
+
+    def _apply_preset(self, preset: WindowPreset) -> None:
+        self._viewer.apply_preset(preset)
+
+    def _on_tool_changed(self, tool: str) -> None:
+        action = self._tool_actions.get(tool)
+        if action is not None:
+            action.setChecked(True)
+
+    def _apply_menu_shortcut_keys(self, shortcuts: dict[str, str]) -> None:
+        for tool, action in self._tool_actions.items():
+            action.setShortcut(QKeySequence(shortcuts[tool]))
+
+    def _apply_shortcuts(self, shortcuts: dict[str, str]) -> None:
+        """Persist edited shortcuts and apply them to the viewer and menu live."""
+        new_config = dataclasses.replace(self._config, viewer_shortcuts=shortcuts)
+        save_config(new_config, self._config_path)
+        self._config = new_config
+        self._viewer.set_shortcuts(shortcuts)
+        self._apply_menu_shortcut_keys(shortcuts)
 
     def _start_scp(self) -> None:
         try:
@@ -135,6 +210,11 @@ class MainWindow(QMainWindow):
         dialog = QueryDialog(self._config, self._store, self)
         dialog.study_retrieved.connect(lambda _uid: self._browser.refresh())
         dialog.exec()
+
+    def _open_shortcuts_dialog(self) -> None:
+        dialog = ShortcutsDialog(self._config.viewer_shortcuts, self)
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            self._apply_shortcuts(dialog.result_shortcuts())
 
     def _open_settings_dialog(self) -> None:
         dialog = SettingsDialog(self._config, self)
