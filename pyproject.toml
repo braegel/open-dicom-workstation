@@ -39,6 +39,7 @@ packages = ["src/odw"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["."]
 qt_api = "pyside6"
 markers = [
     "integration: requires a running Orthanc test PACS (set ODW_ORTHANC_HOST)",
