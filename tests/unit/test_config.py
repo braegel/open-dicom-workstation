@@ -6,6 +6,7 @@ import pytest
 from pydicom.uid import ImplicitVRLittleEndian, RLELossless
 
 from odw.core.config import (
+    DEFAULT_VIEWER_SHORTCUTS,
     AppConfig,
     ConfigError,
     default_config_path,
@@ -72,6 +73,7 @@ def test_load_old_config_without_new_keys_yields_defaults(tmp_path: Path) -> Non
 
     assert config.nodes[0].retrieve_method == "C-GET"
     assert config.transfer_syntaxes == DEFAULT_TRANSFER_SYNTAXES
+    assert config.viewer_shortcuts == DEFAULT_VIEWER_SHORTCUTS
 
 
 def test_load_rejects_invalid_retrieve_method(tmp_path: Path) -> None:
@@ -126,6 +128,74 @@ def test_save_is_atomic_no_tmp_left_behind(tmp_path: Path) -> None:
 def test_load_rejects_invalid_port(tmp_path: Path, bad_port: str) -> None:
     path = tmp_path / "config.toml"
     path.write_text(f"listen_port = {bad_port}\n")
+
+    with pytest.raises(ConfigError):
+        load_config(path)
+
+
+def test_viewer_shortcuts_roundtrip(tmp_path: Path) -> None:
+    custom = dict(DEFAULT_VIEWER_SHORTCUTS)
+    custom["window"] = "F"
+    custom["reset"] = "0"
+    path = tmp_path / "config.toml"
+
+    save_config(AppConfig(viewer_shortcuts=custom), path)
+    loaded = load_config(path)
+
+    assert loaded.viewer_shortcuts == custom
+
+
+def test_viewer_shortcuts_default_when_absent(tmp_path: Path) -> None:
+    path = tmp_path / "config.toml"
+    path.write_text('local_ae_title = "OLD"\n')
+
+    config = load_config(path)
+
+    assert config.viewer_shortcuts == DEFAULT_VIEWER_SHORTCUTS
+
+
+def test_viewer_shortcuts_partial_table_fills_defaults(tmp_path: Path) -> None:
+    path = tmp_path / "config.toml"
+    path.write_text('[viewer_shortcuts]\nwindow = "F"\n')
+
+    config = load_config(path)
+
+    expected = dict(DEFAULT_VIEWER_SHORTCUTS)
+    expected["window"] = "F"
+    assert config.viewer_shortcuts == expected
+
+
+def test_viewer_shortcuts_lowercase_input_is_normalized(tmp_path: Path) -> None:
+    path = tmp_path / "config.toml"
+    path.write_text('[viewer_shortcuts]\nwindow = " f "\n')
+
+    config = load_config(path)
+
+    assert config.viewer_shortcuts["window"] == "F"
+
+
+def test_viewer_shortcuts_rejects_unknown_action(tmp_path: Path) -> None:
+    path = tmp_path / "config.toml"
+    path.write_text('[viewer_shortcuts]\nteleport = "T"\n')
+
+    with pytest.raises(ConfigError):
+        load_config(path)
+
+
+def test_viewer_shortcuts_rejects_empty_value(tmp_path: Path) -> None:
+    path = tmp_path / "config.toml"
+    path.write_text('[viewer_shortcuts]\nwindow = ""\n')
+
+    with pytest.raises(ConfigError):
+        load_config(path)
+
+
+def test_viewer_shortcuts_rejects_duplicate_values_case_insensitive(
+    tmp_path: Path,
+) -> None:
+    # "z" collides with the default zoom shortcut "Z" after normalization.
+    path = tmp_path / "config.toml"
+    path.write_text('[viewer_shortcuts]\nwindow = "z"\n')
 
     with pytest.raises(ConfigError):
         load_config(path)

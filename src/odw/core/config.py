@@ -15,6 +15,14 @@ from odw.core.transfer import DEFAULT_TRANSFER_SYNTAXES, TRANSFER_SYNTAXES
 DEFAULT_LOCAL_AET = "ODW"
 DEFAULT_LISTEN_PORT = 11112
 RETRIEVE_METHODS = ("C-GET", "C-MOVE")
+DEFAULT_VIEWER_SHORTCUTS: dict[str, str] = {
+    "window": "W",
+    "zoom": "Z",
+    "length": "L",
+    "polygon": "P",
+    "ellipse": "E",
+    "reset": "R",
+}
 
 
 class ConfigError(Exception):
@@ -36,6 +44,7 @@ class AppConfig:
     storage_dir: Path = field(default_factory=default_storage_dir)
     nodes: list[PacsNode] = field(default_factory=list)
     transfer_syntaxes: list[str] = field(default_factory=lambda: list(DEFAULT_TRANSFER_SYNTAXES))
+    viewer_shortcuts: dict[str, str] = field(default_factory=lambda: dict(DEFAULT_VIEWER_SHORTCUTS))
 
 
 def _require_str(data: dict[str, Any], key: str, context: str) -> str:
@@ -78,6 +87,22 @@ def _transfer_syntaxes_from(value: Any) -> list[str]:
     return syntaxes
 
 
+def _viewer_shortcuts_from(value: Any) -> dict[str, str]:
+    if not isinstance(value, dict):
+        raise ConfigError("config: 'viewer_shortcuts' must be a table")
+    shortcuts = dict(DEFAULT_VIEWER_SHORTCUTS)
+    for action, raw in value.items():
+        if action not in DEFAULT_VIEWER_SHORTCUTS:
+            raise ConfigError(f"viewer_shortcuts: unknown action '{action}'")
+        if not isinstance(raw, str) or not raw.strip():
+            raise ConfigError(f"viewer_shortcuts: '{action}' must be a non-empty string")
+        shortcuts[action] = raw.strip().upper()
+    keys = [key.upper() for key in shortcuts.values()]
+    if len(set(keys)) != len(keys):
+        raise ConfigError("viewer_shortcuts: the same key is assigned to multiple actions")
+    return shortcuts
+
+
 def load_config(path: Path | None = None) -> AppConfig:
     if path is None:
         path = default_config_path()
@@ -99,6 +124,8 @@ def load_config(path: Path | None = None) -> AppConfig:
         config.storage_dir = Path(_require_str(data, "storage_dir", "config"))
     if "transfer_syntaxes" in data:
         config.transfer_syntaxes = _transfer_syntaxes_from(data["transfer_syntaxes"])
+    if "viewer_shortcuts" in data:
+        config.viewer_shortcuts = _viewer_shortcuts_from(data["viewer_shortcuts"])
     config.nodes = [_node_from_dict(node) for node in data.get("nodes", [])]
     return config
 
@@ -113,6 +140,7 @@ def save_config(config: AppConfig, path: Path | None = None) -> None:
         "listen_port": config.listen_port,
         "storage_dir": str(config.storage_dir),
         "transfer_syntaxes": list(config.transfer_syntaxes),
+        "viewer_shortcuts": dict(config.viewer_shortcuts),
         "nodes": [
             {
                 "name": n.name,
