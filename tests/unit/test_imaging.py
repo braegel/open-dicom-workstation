@@ -15,6 +15,7 @@ from odw.core.imaging import (
     default_window,
     modality_values,
     render_frame,
+    repair_mislabeled_pixel_data,
 )
 
 
@@ -128,6 +129,53 @@ class TestRenderFrame:
     def test_render_frame_rejects_multiframe(self) -> None:
         ds = make_ct_dataset(rows=2, cols=2)
         ds.NumberOfFrames = 2
+
+        with pytest.raises(UnsupportedImageError):
+            render_frame(ds)
+
+
+class TestMislabeledPixelData:
+    """Some PACS send stored compressed bytes while negotiating a native
+    transfer syntax — the file then claims e.g. Implicit VR LE but PixelData
+    holds an encapsulated JPEG 2000 stream."""
+
+    def _mislabeled_j2k_dataset(self):
+        from pydicom.uid import ImplicitVRLittleEndian, JPEG2000Lossless
+
+        pixels = np.arange(1024, dtype=np.int16).reshape(32, 32)
+        ds = make_ct_dataset(rows=32, cols=32, pixel_fill=pixels)
+        reference = render_frame(ds)
+        ds.compress(JPEG2000Lossless)
+        assert ds.file_meta.TransferSyntaxUID == JPEG2000Lossless
+        ds.file_meta.TransferSyntaxUID = ImplicitVRLittleEndian  # the PACS lie
+        if hasattr(ds, "_pixel_array"):
+            ds._pixel_array = None
+            ds._pixel_id = {}
+        return ds, reference
+
+    def test_repair_detects_and_fixes_j2k(self) -> None:
+        from pydicom.uid import JPEG2000Lossless
+
+        ds, _ = self._mislabeled_j2k_dataset()
+
+        assert repair_mislabeled_pixel_data(ds) is True
+        assert ds.file_meta.TransferSyntaxUID == JPEG2000Lossless
+
+    def test_repair_leaves_native_data_alone(self) -> None:
+        ds = make_ct_dataset(rows=4, cols=4)
+
+        assert repair_mislabeled_pixel_data(ds) is False
+
+    def test_render_frame_repairs_mislabeled_j2k(self) -> None:
+        ds, reference = self._mislabeled_j2k_dataset()
+
+        result = render_frame(ds)
+
+        np.testing.assert_array_equal(result, reference)  # lossless round trip
+
+    def test_render_frame_wraps_undecodable_pixel_data(self) -> None:
+        ds = make_ct_dataset(rows=16, cols=16)
+        ds.PixelData = ds.PixelData[:100]  # truncated/corrupt native data
 
         with pytest.raises(UnsupportedImageError):
             render_frame(ds)

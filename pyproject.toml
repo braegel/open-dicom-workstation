@@ -13,6 +13,8 @@ dependencies = [
     "PySide6>=6.8",
     "platformdirs>=4",
     "tomli-w>=1",
+    "pylibjpeg[libjpeg,openjpeg,rle]>=2.0",
+    "pyjpegls>=1.5.1",
 ]
 
 [project.urls]

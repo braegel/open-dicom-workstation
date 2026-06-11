@@ -139,3 +139,23 @@ def test_render_keeps_buffer_alive(viewer):
     second = viewer.grab().toImage()
     assert not second.isNull()
     assert first == second
+
+
+def test_undecodable_slice_paints_error_instead_of_crashing(qtbot):
+    """A dataset whose pixel data cannot be decoded must never let an exception
+    escape paintEvent — that leaves the QPainter active and segfaults Qt."""
+    good = make_ct_dataset(rows=16, cols=16, instance_number=2)
+    corrupt = make_ct_dataset(rows=16, cols=16, instance_number=1)
+    corrupt.PixelData = corrupt.PixelData[:100]
+
+    viewer = ViewerWidget()
+    qtbot.addWidget(viewer)
+    viewer.resize(256, 256)
+    viewer.load_series([corrupt, good])
+
+    image = viewer.grab().toImage()  # paints the corrupt slice
+    assert not image.isNull()
+
+    send_wheel(viewer, -120)  # move to the good slice
+    assert viewer.current_index == 1
+    assert not viewer.grab().toImage().isNull()

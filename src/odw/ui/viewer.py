@@ -16,7 +16,7 @@ from PySide6.QtGui import (
 )
 from PySide6.QtWidgets import QWidget
 
-from odw.core.imaging import UnsupportedImageError, default_window, render_frame
+from odw.core.imaging import default_window, render_frame
 
 ZOOM_MIN = 0.1
 ZOOM_MAX = 32.0
@@ -84,7 +84,7 @@ class ViewerWidget(QWidget):
         self._zoom = 1.0
         self._pan = QPointF(0.0, 0.0)
         if self._datasets:
-            self._center, self._width = default_window(self._datasets[0])
+            self._center, self._width = self._safe_default_window(self._datasets[0])
         self._invalidate_cache()
         self.update()
         self.view_changed.emit()
@@ -99,11 +99,19 @@ class ViewerWidget(QWidget):
         """Restore the dataset's default window, zoom 1.0 and no pan."""
         ds = self.current_dataset
         if ds is not None:
-            self._center, self._width = default_window(ds)
+            self._center, self._width = self._safe_default_window(ds)
         self._zoom = 1.0
         self._pan = QPointF(0.0, 0.0)
         self.update()
         self.view_changed.emit()
+
+    @staticmethod
+    def _safe_default_window(ds: Dataset) -> tuple[float, float]:
+        """default_window may decode pixel data, which can fail on bad datasets."""
+        try:
+            return default_window(ds)
+        except Exception:
+            return (0.0, 1.0)
 
     # -- event handlers ----------------------------------------------------------
 
@@ -211,7 +219,9 @@ class ViewerWidget(QWidget):
         self._render_error = None
         try:
             frame = render_frame(self._datasets[self._index], self._center, self._width)
-        except UnsupportedImageError as exc:
+        except Exception as exc:
+            # paintEvent must never raise: an escaping exception leaves the
+            # QPainter active and crashes Qt on the next backing-store flush.
             self._frame_buffer = None
             self._frame_image = None
             self._render_error = str(exc)
