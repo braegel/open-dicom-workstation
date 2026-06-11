@@ -18,7 +18,7 @@ dependencies = [
 ]
 
 [project.urls]
-Repository = "https://github.com/open-dicom-workstation/open-dicom-workstation"
+Repository = "https://github.com/braegel/open-dicom-workstation"
 
 [project.scripts]
 odw = "odw.app:main"
