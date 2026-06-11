@@ -22,3 +22,12 @@ def ct_dataset() -> FileDataset:
 @pytest.fixture
 def ct_series() -> list[FileDataset]:
     return make_series(3)
+
+
+@pytest.fixture
+def store(tmp_path):
+    from odw.core.storage import DicomStore
+
+    s = DicomStore(tmp_path / "dicom")
+    yield s
+    s.close()
