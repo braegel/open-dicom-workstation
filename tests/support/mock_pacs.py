@@ -3,8 +3,12 @@
 from fnmatch import fnmatchcase
 
 from pydicom.dataset import Dataset
+from pydicom.uid import CTImageStorage
 from pynetdicom import AE, evt
-from pynetdicom.sop_class import StudyRootQueryRetrieveInformationModelFind
+from pynetdicom.sop_class import (
+    StudyRootQueryRetrieveInformationModelFind,
+    StudyRootQueryRetrieveInformationModelGet,
+)
 
 
 def _name_matches(pattern: str, value: str) -> bool:
@@ -39,10 +43,17 @@ class MockPacs:
     def start(self) -> None:
         ae = AE(ae_title=self.aet)
         ae.add_supported_context(StudyRootQueryRetrieveInformationModelFind)
+        ae.add_supported_context(StudyRootQueryRetrieveInformationModelGet)
+        # For C-GET the SCP sends instances on the same association, so the
+        # storage SOP class must be supported with both roles accepted.
+        ae.add_supported_context(CTImageStorage, scu_role=True, scp_role=True)
         self._server = ae.start_server(
             ("127.0.0.1", 0),
             block=False,
-            evt_handlers=[(evt.EVT_C_FIND, self._handle_find)],
+            evt_handlers=[
+                (evt.EVT_C_FIND, self._handle_find),
+                (evt.EVT_C_GET, self._handle_get),
+            ],
         )
         self._port = self._server.socket.getsockname()[1]
 
@@ -58,6 +69,18 @@ class MockPacs:
 
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:
         self.stop()
+
+    # -- C-GET handling ----------------------------------------------------
+
+    def _matches_for_study(self, identifier: Dataset) -> list[Dataset]:
+        study_uid = str(getattr(identifier, "StudyInstanceUID", "") or "")
+        return [ds for ds in self._instances if str(ds.StudyInstanceUID) == study_uid]
+
+    def _handle_get(self, event):
+        matches = self._matches_for_study(event.identifier)
+        yield len(matches)
+        for ds in matches:
+            yield 0xFF00, ds
 
     # -- C-FIND handling ---------------------------------------------------
 
