@@ -2,11 +2,13 @@
 
 import pytest
 from pydicom import dcmread
+from pydicom.dataset import Dataset
 from pydicom.uid import ImplicitVRLittleEndian, generate_uid
 from tests.support.factory import make_series
 from tests.support.mock_pacs import MockPacs
 
 from odw.core.models import PacsNode
+from odw.core.net import PacsConnectionError
 from odw.core.net.retrieve import RetrieveScu
 
 SERIES = make_series(3)
@@ -66,3 +68,19 @@ def test_get_unknown_study_completes_with_zero(scu, store):
     result = scu.get_study(generate_uid(), store)
     assert result.completed == 0
     assert store.instances_for_series(SERIES_UID) == []
+
+
+def test_collect_raises_on_empty_status_dataset():
+    """A peer that aborts mid-operation yields a status with no Status element.
+
+    The PACS must surface that as a clean connection error rather than an
+    opaque AttributeError on ``status.Status``.
+    """
+    node = PacsNode("test", "PEER", "127.0.0.1", 11112)
+    scu = RetrieveScu("ODW_TEST", node)
+
+    def responses():
+        yield Dataset(), None
+
+    with pytest.raises(PacsConnectionError):
+        scu._collect(responses(), "C-GET", None)

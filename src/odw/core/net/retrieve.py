@@ -139,7 +139,10 @@ class RetrieveScu:
         """Drain pending responses, reporting progress; build the result from the final one."""
         result = RetrieveResult(completed=0, failed=0, warnings=0)
         for status, _rsp in responses:
-            if status is None:
+            # ``status is None`` means the connection dropped; an empty status
+            # dataset (no Status element) means the peer aborted the operation,
+            # e.g. when it rejects our calling AE title. Treat both alike.
+            if status is None or "Status" not in status:
                 raise PacsConnectionError(
                     f"Connection to {self._node.ae_title} lost during {operation}"
                 )
